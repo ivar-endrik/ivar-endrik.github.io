@@ -1,0 +1,368 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="et" lang="et">
+<head>
+<title>Pildipank</title>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta http-equiv="Content-Style-Type" content="text/css">
+		<meta http-equiv="Content-Script-Type" content="text/javascript">
+			<meta http-equiv="X-UA-Compatible" content="IE=8">
+				<script src="prototype.js"
+					type="text/javascript"></script>
+				<script src="pp.js" language="JavaScript"
+					type="text/javascript"></script>
+				<link rel="stylesheet" type="text/css"
+					href="uuringunimekiri_files/study.css">
+					<script type="text/javascript">
+						// Promises 
+						var _eid_promises = {};
+						// Turn the incoming message from extension 
+						// into pending Promise resolving 
+						window
+								.addEventListener(
+										"message",
+										function(event) {
+											if (event.source !== window)
+												return;
+											if (event.data.src
+													&& (event.data.src === "background.js")) {
+												console.log("Page received: ");
+												console.log(event.data);
+												// Get the promise 
+												if (event.data.nonce) {
+													var p = _eid_promises[event.data.nonce];
+													// resolve 
+													if (event.data.result === "ok") {
+														if (event.data.signature !== undefined) {
+															p
+																	.resolve({
+																		hex : event.data.signature
+																	});
+														} else if (event.data.version !== undefined) {
+															p
+																	.resolve(event.data.extension
+																			+ "/"
+																			+ event.data.version);
+														} else if (event.data.cert !== undefined) {
+															p
+																	.resolve({
+																		hex : event.data.cert
+																	});
+														} else {
+															console
+																	.log("No idea how to handle message");
+															console
+																	.log(event.data);
+														}
+													} else {
+														// reject 
+														p
+																.reject(new Error(
+																		event.data.result));
+													}
+													delete _eid_promises[event.data.nonce];
+												} else {
+													console
+															.log("No nonce in event msg");
+												}
+											}
+										}, false);
+						function TokenSigning() {
+							function nonce() {
+								var val = "";
+								var hex = "abcdefghijklmnopqrstuvwxyz0123456789";
+								for (var i = 0; i < 16; i++)
+									val += hex.charAt(Math.floor(Math.random()
+											* hex.length));
+								return val;
+							}
+							function messagePromise(msg) {
+								return new Promise(function(resolve, reject) {
+									// amend with necessary metadata 
+									msg["nonce"] = nonce();
+									msg["src"] = "page.js";
+									// send message 
+									window.postMessage(msg, "*");
+									// and store promise callbacks 
+									_eid_promises[msg.nonce] = {
+										resolve : resolve,
+										reject : reject
+									};
+								});
+							}
+							this.getCertificate = function(options) {
+								var msg = {
+									type : "CERT",
+									lang : options.lang
+								};
+								console.log("getCertificate()");
+								return messagePromise(msg);
+							};
+							this.sign = function(cert, hash, options) {
+								var msg = {
+									type : "SIGN",
+									cert : cert.hex,
+									hash : hash.hex,
+									hashtype : hash.type,
+									lang : options.lang
+								};
+								console.log("sign()");
+								return messagePromise(msg);
+							};
+							this.getVersion = function() {
+								console.log("getVersion()");
+								return messagePromise({
+									type : "VERSION"
+								});
+							};
+						}
+					</script>
+</head>
+<body>
+	<div id="wrap">
+		<!-- header -->
+		<div id="header">
+			<div id="langwrap">
+				<img src="uuringunimekiri_files/keel-tst-v.gif" style="border: 0px;"
+					alt="" width="9" align="left" height="21">
+					<div id="lang">
+						<a
+							href="https://portaaltest.pildipank.ee/pp/patient.do?lang=et&amp;id=23&amp;action=setUpView"
+							id="currentlang">EE</a> <a
+							href="https://portaaltest.pildipank.ee/pp/patient.do?lang=en&amp;id=23&amp;action=setUpView">EN</a>
+					</div>
+			</div>
+			<div id="abi">
+				<img src="uuringunimekiri_files/kysimark.gif" alt="Abiinfo: "
+					title="Abiinfo: " style="border-style: none;" width="8" height="10">
+					<a href="https://portaaltest.pildipank.ee/help.pdf">Abiinfo</a>&nbsp;<img
+					src="uuringunimekiri_files/kriips.gif" alt=" " width="1" border="0"
+					height="19">&nbsp;<img src="uuringunimekiri_files/rist.gif"
+						alt="Logi välja" width="11" border="0" height="11"> <a
+							href="https://portaaltest.pildipank.ee/logout.do">Logi välja</a>
+			</div>
+			<div id="username"
+				style="float: right; margin-top: -6px; margin-right: 4em; color: #FFF; font-size: 90%;">
+				Kasutaja: ppadmin (OÜ Räpina Haigla)</div>
+			<h1>
+				<a href="https://portaaltest.pildipank.ee/home.do">Tervishoiu
+					Pildipank</a>
+			</h1>
+			<ul id="navMenu">
+				<li><a
+					href="https://portaaltest.pildipank.ee/pp/doctor.do?action=setUpList">Arstid</a></li>
+				<li><a
+					href="https://portaaltest.pildipank.ee/pp/user.do?action=setUpList">Kasutajad</a></li>
+				<li id="current"><a
+					href="https://portaaltest.pildipank.ee/pp/patient.do?action=setUpList">Patsiendid</a></li>
+				<li><a
+					href="https://portaaltest.pildipank.ee/pp/institution.do?action=setUpList">Asutused</a></li>
+				<li class="kasutajakontoSeadistamine"><a
+					href="https://portaaltest.pildipank.ee/pp/userSettings.do?action=setUpForm">Kasutajakonto
+						seadistamine</a></li>
+				<li><a href="https://portaaltest.pildipank.ee/pp/conf.do">Konfiguratsioon</a></li>
+				<li><a href="https://portaaltest.pildipank.ee/pp/logs.do">Logi</a></li>
+			</ul>
+		</div>
+		<div id="content">
+			<h2>Patsiendi vaatamine: KLAUS-EDUARD RUNNEL (38002272726)</h2>
+			<h3>Perearst : Sirje Kaasik</h3>
+			<div style="margin: 1em;">
+				<p class="message">
+					Seletuskiri on salvestatud ja Teile on antud ajutine juurdepääs<br>
+				</p>
+			</div>
+			<form name="study_list_form" action="/pp/patient.do" method="post">
+				<input name="id" value="23" type="hidden"> <input
+					name="action" value="setUpView" type="hidden"> <input
+						name="list" value="study" type="hidden"> <input
+							name="keep_filter" value="y" type="hidden"> <input
+								name="list_action" value="search" type="hidden"> <input
+									name="order_by_direction" value="1" type="hidden"> <input
+										name="order_by" value="nothing" type="hidden">
+											<table>
+												<thead>
+													<tr>
+														<th></th>
+														<th scope="col"><a
+															onclick="document.study_list_form.method='get';document.study_list_form.list_action.value='order';document.study_list_form.order_by.value='studyPerformedTimestamp';document.study_list_form.order_by_direction.value='1';document.study_list_form.submit();"
+															class="sort2"> Kuupäev </a></th>
+														<th scope="col"><a
+															onclick="document.study_list_form.method='get';document.study_list_form.list_action.value='order';document.study_list_form.order_by.value='description';document.study_list_form.order_by_direction.value='1';document.study_list_form.submit();"
+															class="notsorted"> Kirjeldus </a></th>
+														<th scope="col"><a
+															onclick="document.study_list_form.method='get';document.study_list_form.list_action.value='order';document.study_list_form.order_by.value='modality';document.study_list_form.order_by_direction.value='1';document.study_list_form.submit();"
+															class="notsorted"> Modaliteet </a></th>
+														<th scope="col"><a
+															onclick="document.study_list_form.method='get';document.study_list_form.list_action.value='order';document.study_list_form.order_by.value='performer';document.study_list_form.order_by_direction.value='1';document.study_list_form.submit();"
+															class="notsorted"> Asutus </a></th>
+														<th scope="col">Vastus</th>
+														<!-- A column for actions - search button, view/edit/delete list elements. -->
+														<th scope="col"><html:xhtml>
+																<select name="show" onchange="this.form.submit()">
+																	<option value="radiology">radioloogia</option>
+																	<option value="cardiology">kardioloogia</option>
+																	<option value="all" selected="selected">kõik</option>
+																</select>
+															</html:xhtml></th>
+													</tr>
+													<tr>
+														<td></td>
+														<td style="text-align: center;"><input
+															class="listTextBox" tabindex="100"
+															name="studyPerformedTimestamp" size="11" type="text"></td>
+														<td style="text-align: center;"><input
+															class="listTextBox" tabindex="101" name="description"
+															type="text"></td>
+														<td style="text-align: center;"><input
+															class="listTextBox" tabindex="102" name="modality"
+															size="5" type="text"></td>
+														<td style="text-align: center;"><input
+															class="listTextBox" tabindex="103" name="performer"
+															size="7" type="text"></td>
+														<td style="text-align: center;"><input
+															class="listTextBox" tabindex="104" name="answerStart"
+															size="40" type="text"></td>
+														<td><input name="submit"
+															src="uuringunimekiri_files/nupp-otsi-roheline.gif"
+															value="" tabindex="106" onclick="javascript:void(0);"
+															style="" class="" title="Otsi" alt="Otsi" type="image"></td>
+													</tr>
+												</thead>
+												<tfoot>
+													<tr>
+														<td colspan="7" valign="middle">
+															<table style="border: none; margin: 0;" width="100%">
+																<tbody>
+																	<tr>
+																		<td width="75%"><input name="currentpage"
+																			value="1" type="hidden"> <input
+																				name="page_no" value="1" type="hidden"> <script
+																						language="JavaScript" type="text/javascript">
+																					function submitform(
+																							pageno) {
+																						document.study_list_form.page_no.value = pageno;
+																						document.study_list_form.list_action.value = 'set_page';
+																						document.study_list_form
+																								.submit();
+																					}
+																				</script> <a class="pageNumber" href="javascript:submitform(1)"> « </a> <a
+																					class="pageNumberNA">‹</a> <a class="pageNumber"
+																					href="javascript:submitform(1)"><b>1</b></a> <a
+																					class="pageNumberNA">›</a> <a class="pageNumber"
+																					href="javascript:submitform(1)"> » </a> <b>Kirjeid
+																						kokku:</b> 3 </td>
+																		<td width="25%"><label for="pageSizeIndex">Lehel</label>
+																			<select id="pageSizeIndex" name="page_size"
+																			onchange="this.form.method='get';this.form.list_action.value='page_resize';this.form.submit()">
+																				<option value="10" selected="selected">10</option>
+																				<option value="20">20</option>
+																				<option value="50">50</option>
+																				<option value="100">100</option>
+																		</select></td>
+																	</tr>
+																</tbody>
+															</table>
+														</td>
+													</tr>
+													<tr>
+														<td colspan="7"
+															style="text-align: left; padding-left: 25px;"><input
+															name="view"
+															src="uuringunimekiri_files/nupp-vaata-valituid.gif"
+															value="" tabindex="301"
+															onclick="this.form.method='get';this.form.list_action.value='';"
+															style="" class="" title="Vaata" alt="Vaata" type="image"></td>
+													</tr>
+												</tfoot>
+												<tbody>
+													<!-- The table data. -->
+													<input name="list_of_preselected_ids" value=""
+														type="hidden">
+														<tr>
+															<td><input name="selectedIds" value="6592432"
+																type="checkbox"></td>
+															<td>
+																<p>10.11.2015 11:51</p>
+															</td>
+															<td>
+																<p>Röntgeniülesvõte rindkerest (otseülesvõte, PA)</p>
+															</td>
+															<td>
+																<p>CR</p>
+															</td>
+															<td>
+																<p>TUK</p>
+															</td>
+															<td>
+																<p>TELLITUD UURINGUD RG6001 x 1 Röntgeniülesvõte
+																	rindkerest (otseülesvõte, PA) KIRJELDUS Diafragmad
+																	ka...</p>
+															</td>
+															<td nowrap="nowrap"><a href="javascript:void(0);"
+																class="muuda"
+																onclick="javascript:window.open('/pp/study.do?action=setUpRead&amp;id=6592432','_blank','status=1,width=545,height=450 ,scrollbars=1')">Loe</a>
+																| <a
+																href="https://portaaltest.pildipank.ee/pp/study.do?action=setUpView&amp;id=6592432"
+																class="muuda" onclick="">Vaata</a></td>
+														</tr>
+														<tr class="odd">
+															<td><input name="selectedIds" value="2481897"
+																type="checkbox"></td>
+															<td>
+																<p>8.03.2012 14:30</p>
+															</td>
+															<td>
+																<p>THORAX</p>
+															</td>
+															<td>
+																<p>CR</p>
+															</td>
+															<td>
+																<p>TUK</p>
+															</td>
+															<td>
+																<p>TELLITUD UURINGUD\X000d\6059 x 1 Intraoraalne
+																	hambaülesvõte\X000d\\X000d\KIRJELDUS\X000d\&nbsp;bad
+																	bad\X0...</p>
+															</td>
+															<td nowrap="nowrap"><a href="javascript:void(0);"
+																class="muuda"
+																onclick="javascript:window.open('/pp/study.do?action=setUpRead&amp;id=2481897','_blank','status=1,width=545,height=450 ,scrollbars=1')">Loe</a>
+																| <a
+																href="https://portaaltest.pildipank.ee/pp/study.do?action=setUpView&amp;id=2481897"
+																class="muuda" onclick="">Vaata</a></td>
+														</tr>
+														<tr>
+															<td><input name="selectedIds" value="361821"
+																type="checkbox"></td>
+															<td>
+																<p>26.09.2008 13:34</p>
+															</td>
+															<td>
+																<p>THORAX</p>
+															</td>
+															<td>
+																<p>CR</p>
+															</td>
+															<td>
+																<p>TUC</p>
+															</td>
+															<td>
+																<p>Kopsuväljad bilateraalsel lisavarjudeta,
+																	bronhiaalne ning vaskulaarne joonis tavapärasena.
+																	Mediast...</p>
+															</td>
+															<td nowrap="nowrap"><a href="javascript:void(0);"
+																class="muuda"
+																onclick="javascript:window.open('/pp/study.do?action=setUpRead&amp;id=361821','_blank','status=1,width=545,height=450 ,scrollbars=1')">Loe</a>
+																| <a
+																href="https://portaaltest.pildipank.ee/pp/study.do?action=setUpView&amp;id=361821"
+																class="muuda" onclick="">Vaata</a></td>
+														</tr>
+												</tbody>
+											</table>
+			</form>
+		</div>
+	</div>
+</body>
+</html>
