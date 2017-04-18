@@ -602,5 +602,8 @@ dd {
 	}
 	#lang {
 		margin-top: 1px;
+	}
+	input {
+    border-radius: 0;
 	} 	
 }
