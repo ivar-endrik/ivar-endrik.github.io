@@ -605,5 +605,8 @@ dd {
 	}
 	input {
     border-radius: 0;
+	}
+	a {
+	text-decoration: none;
 	} 	
 }
